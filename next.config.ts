@@ -1,13 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  trailingSlash: true,
-  basePath: '/frictionlearn',
-  assetPrefix: '/frictionlearn/',
-  images: {
-    unoptimized: true
-  }
+  /* config options here */
 };
 
 export default nextConfig;
