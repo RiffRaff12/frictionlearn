@@ -143,26 +143,18 @@ function getRandomEmphasisStyle(): React.CSSProperties {
 export default function FrictionText({
   text,
   font,
-  variableSpacing,
-  unstableSegmentation,
   showFullText,
   fontScale,
   enableCloze: _enableCloze,
-  randomFontSize,
   randomFontColor,
-  fontSizeRange,
   colorIntensity,
 }: {
   text: string;
   font: DisfluentFont;
-  variableSpacing: boolean;
-  unstableSegmentation: boolean;
   showFullText: boolean;
   fontScale: number;
   enableCloze: boolean;
-  randomFontSize: boolean;
   randomFontColor: boolean;
-  fontSizeRange: number;
   colorIntensity: number;
 }) {
   const baseFontClass = useMemo(() => {
@@ -207,16 +199,41 @@ export default function FrictionText({
     }
   }, [isMounted, tokens]);
 
-  // Add cloze deletion functionality
+  // Add cloze deletion functionality with stable styling
   const [revealedWords, setRevealedWords] = useState<Set<string>>(new Set());
-  const clozeWords = useMemo(() => getRandomClozeWords(tokens), [tokens]);
-
-  // Debug logging
-  useEffect(() => {
-    if (isMounted && clozeWords.size > 0) {
-      debugClozeWords(tokens, clozeWords);
-    }
-  }, [isMounted, clozeWords, tokens]);
+  
+  // Create stable, deterministic styling that won't change on re-renders
+  const stableStyling = useMemo(() => {
+    if (!isMounted) return null;
+    
+    const alignOptions: Alignment[] = ["text-left", "text-right", "text-justify"];
+    const fontOptions = [
+      "font-disfluent-serif",
+      "font-disfluent-hand",
+      "font-disfluent-condensed",
+      "font-disfluent-slab",
+      "font-disfluent-mono",
+    ];
+    
+    return segments?.map((seg, i) => {
+      const alignChoice = (i * 7 + seg.length) % alignOptions.length;
+      const fontChoice = (i * 13 + seg.charCodeAt(0)) % fontOptions.length;
+      const spacingChoice = (i * 11) % 2 === 0;
+      const sizeChoice = (i * 17) % 20 + 12; // 12-32px range
+      const emphasisChoice = (i * 23) % 4; // 4 emphasis options
+      
+      return {
+        align: alignOptions[alignChoice],
+        font: fontOptions[fontChoice],
+        spacing: spacingChoice ? randomSpacingStyle() : null,
+        size: sizeChoice,
+        color: getRandomColor(isDark, randomFontColor, colorIntensity),
+        emphasis: emphasisChoice === 0 ? { fontWeight: 700 } : 
+                 emphasisChoice === 1 ? { fontStyle: "italic" } :
+                 emphasisChoice === 2 ? { textDecoration: "underline" } : {}
+      };
+    });
+  }, [isMounted, segments, isDark, randomFontColor, colorIntensity]);
 
   const handleRevealWord = (wordKey: string) => {
     setRevealedWords(prev => new Set([...prev, wordKey]));
@@ -230,7 +247,6 @@ export default function FrictionText({
     );
   }
 
-  let currentAlign: Alignment = "text-left";
   // currentFont is no longer carried; each segment picks independently for variety
 
   // Before mount, render a stable block to match SSR
@@ -245,16 +261,9 @@ export default function FrictionText({
   return (
     <div style={{ whiteSpace: "pre-wrap" }}>
       {segments.map((seg, i) => {
-        // Only randomize after mount to avoid SSR/CSR mismatch
-        if (isMounted && (Math.random() < 0.35 || i % randomInt(5, 8) === 0)) {
-          currentAlign = pick(alignOptions, currentAlign);
-        }
-        const chosenFont = isMounted ? fontOptions[Math.floor(Math.random() * fontOptions.length)] : baseFontClass;
-
-        const spacing = isMounted && variableSpacing ? randomSpacingStyle() : null;
-        const sizePx = getRandomFontSizePx(randomFontSize);
-        const color = isMounted ? getRandomColor(isDark, randomFontColor, colorIntensity) : undefined;
-        const emphasis = isMounted ? getRandomEmphasisStyle() : {};
+        // Use stable styling that won't change on re-renders
+        const styling = stableStyling?.[i];
+        if (!styling) return null;
 
         // Check if this segment contains cloze words
         const segmentTokens = tokenize(seg);
@@ -292,13 +301,13 @@ export default function FrictionText({
         return (
           <span
             key={i}
-            className={`${currentAlign} ${chosenFont}`}
+            className={`${styling.align} ${styling.font}`}
             style={{
-              ...(spacing || {}),
+              ...(styling.spacing || {}),
               display: "inline-block",
-              fontSize: `${sizePx}px`,
-              color,
-              ...emphasis,
+              fontSize: `${styling.size}px`,
+              color: styling.color,
+              ...styling.emphasis,
             }}
             suppressHydrationWarning
           >

@@ -21,14 +21,10 @@ export default function Reader({ text, regenKey }: { text: string; regenKey?: nu
           key={regenKey}
           text={text}
           font={settings.disfluentFont}
-          variableSpacing={settings.variableSpacing && !settings.normalMode}
-          unstableSegmentation={false}
           showFullText={settings.normalMode}
           fontScale={settings.fontScale}
           enableCloze={settings.enableCloze}
-          randomFontSize={true}
           randomFontColor={true}
-          fontSizeRange={1.5}
           colorIntensity={0.8}
         />
       </div>
