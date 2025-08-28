@@ -265,18 +265,21 @@ export default function FrictionText({
                 return token;
               }
               
-              // Check if this word should be hidden - use a simpler approach
-              if (_enableCloze && Math.random() < 0.25 && token.length > 2) {
+              // Check if this word should be hidden - use deterministic selection
+              const wordKey = `${i}-${tokenIndex}-${token}`;
+              const shouldHide = _enableCloze && 
+                (wordKey.charCodeAt(0) + wordKey.charCodeAt(1) + wordKey.charCodeAt(2)) % 4 === 0 && 
+                token.length > 2;
+              
+              if (shouldHide) {
                 return (
                   <ClozeWord
-                    key={`${i}-${tokenIndex}`}
+                    key={wordKey}
                     word={token}
                     onReveal={() => {
-                      // Generate a unique key for this word
-                      const wordKey = `${i}-${tokenIndex}-${token}`;
                       setRevealedWords(prev => new Set([...prev, wordKey]));
                     }}
-                    isRevealed={false} // Always start hidden for now
+                    isRevealed={revealedWords.has(wordKey)}
                   />
                 );
               }
