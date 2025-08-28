@@ -40,8 +40,8 @@ export default function Home() {
         </p>
       </header>
 
-      <div className="flex gap-6 overflow-x-auto">
-        <div className="flex-shrink-0 w-[1400px]">
+      <div className="flex gap-6">
+        <div className="w-[360px] flex-shrink-0">
           <form onSubmit={handleGenerate} className="mb-4">
             <div className="mb-2">
               <button type="submit" className="block w-fit px-4 py-2 rounded-md border text-sm">
@@ -61,7 +61,7 @@ export default function Home() {
             </div>
             <textarea
               ref={textareaRef}
-              className="w-full min-w-[80ch] min-h-40 max-h-[70vh] p-3 border rounded-md bg-white/70 dark:bg-black/30 backdrop-blur resize-none overflow-hidden"
+              className="w-full min-h-40 max-h-[70vh] p-3 border rounded-md bg-white/70 dark:bg-black/30 backdrop-blur resize-none overflow-hidden"
               placeholder="Paste or type a block of text and click 'Generate'"
               value={input}
               onChange={handleInputChange}
@@ -69,11 +69,13 @@ export default function Home() {
           </form>
         </div>
 
-        <div className="flex-shrink-0 w-[360px]">
+        <div className="w-[1400px] flex-shrink-0 rounded-md p-4 bg-black">
           {text ? (
             <Reader key={regenKey} text={text} regenKey={regenKey} />
           ) : (
-            <div className="text-sm text-gray-600 dark:text-gray-300">Output will appear here after you click Generate.</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300 text-center py-8">
+              Output will appear here after you click Generate.
+            </div>
           )}
         </div>
       </div>

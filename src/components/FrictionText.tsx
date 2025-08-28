@@ -2,12 +2,34 @@
 
 import { useMemo, type ReactNode, useEffect, useState } from "react";
 import { DisfluentFont } from "@/state/useSettingsStore";
+import ClozeWord from "./ClozeWord";
 
 type Alignment = "text-left" | "text-right" | "text-justify";
 
 function tokenize(text: string): string[] {
   // Split into words and whitespace, preserving whitespace tokens
   return text.split(/(\s+)/).filter((t) => t.length > 0);
+}
+
+function getRandomClozeWords(tokens: string[], clozePercentage: number = 0.15): Set<number> {
+  const wordIndices: number[] = [];
+  tokens.forEach((token, index) => {
+    if (!isWhitespace(token) && token.length > 2) { // Only hide words longer than 2 chars
+      wordIndices.push(index);
+    }
+  });
+  
+  const numToHide = Math.floor(wordIndices.length * clozePercentage);
+  const selectedIndices = new Set<number>();
+  
+  // Randomly select words to hide
+  for (let i = 0; i < numToHide && wordIndices.length > 0; i++) {
+    const randomIndex = Math.floor(Math.random() * wordIndices.length);
+    selectedIndices.add(wordIndices[randomIndex]);
+    wordIndices.splice(randomIndex, 1);
+  }
+  
+  return selectedIndices;
 }
 
 function isWhitespace(token: string): boolean {
@@ -177,6 +199,14 @@ export default function FrictionText({
     }
   }, [isMounted, tokens]);
 
+  // Add cloze deletion functionality
+  const [revealedWords, setRevealedWords] = useState<Set<number>>(new Set());
+  const clozeWords = useMemo(() => getRandomClozeWords(tokens), [tokens]);
+
+  const handleRevealWord = (wordIndex: number) => {
+    setRevealedWords(prev => new Set([...prev, wordIndex]));
+  };
+
   if (showFullText) {
     return (
       <div className={`${baseFontClass}`} style={{ fontSize: `${fontScale}rem` }}>
@@ -211,7 +241,32 @@ export default function FrictionText({
         const color = isMounted ? getRandomColor(isDark, randomFontColor, colorIntensity) : undefined;
         const emphasis = isMounted ? getRandomEmphasisStyle() : {};
 
-        const content: ReactNode = <>{seg}</>;
+        // Check if this segment contains cloze words
+        const segmentTokens = tokenize(seg);
+        const content: ReactNode = (
+          <>
+            {segmentTokens.map((token, tokenIndex) => {
+              const globalIndex = tokens.indexOf(seg) + tokenIndex;
+              if (isWhitespace(token)) {
+                return token;
+              }
+              
+              // Check if this word should be hidden
+              if (_enableCloze && clozeWords.has(globalIndex)) {
+                return (
+                  <ClozeWord
+                    key={`${i}-${tokenIndex}`}
+                    word={token}
+                    onReveal={() => handleRevealWord(globalIndex)}
+                    isRevealed={revealedWords.has(globalIndex)}
+                  />
+                );
+              }
+              
+              return token;
+            })}
+          </>
+        );
 
         return (
           <span
