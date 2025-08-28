@@ -24,3 +24,26 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/***** Disfluent font utilities *****/
+.font-disfluent-serif {
+  font-family: Georgia, "Times New Roman", Times, serif;
+}
+
+.font-disfluent-hand {
+  font-family: "Comic Sans MS", "Comic Sans", "Bradley Hand", "Chalkboard SE", cursive;
+}
+
+.font-disfluent-condensed {
+  font-stretch: condensed;
+  font-family: "Impact", "Haettenschweiler", "Arial Narrow", "Liberation Sans Narrow", sans-serif;
+}
+
+/* Added additional distinct stacks */
+.font-disfluent-slab {
+  font-family: "Rockwell", "American Typewriter", "Georgia", serif;
+}
+
+.font-disfluent-mono {
+  font-family: "Courier New", Courier, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
