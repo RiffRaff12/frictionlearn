@@ -270,6 +270,54 @@ export default function FrictionText({
     return selectedIndices;
   }, [_enableCloze, isMounted, text]);
 
+  // Create a map of word positions to their cloze status
+  const wordClozeMap = useMemo(() => {
+    if (!_enableCloze || !isMounted) return new Map<string, boolean>();
+    
+    const allTokens = tokenize(text);
+    const map = new Map<string, boolean>();
+    
+    allTokens.forEach((token, index) => {
+      if (!isWhitespace(token) && token.length > 2) {
+        const wordKey = `global-${index}-${token}`;
+        map.set(wordKey, clozeWordIndices.has(wordKey));
+      }
+    });
+    
+    return map;
+  }, [clozeWordIndices, _enableCloze, isMounted, text]);
+
+  // Flatten all segments into a single array of tokens for easier cloze tracking
+  const allTextTokens = useMemo(() => {
+    if (!isMounted) return [];
+    
+    const tokens: Array<{ token: string; index: number; isCloze: boolean }> = [];
+    let wordCount = 0;
+    
+    segments?.forEach((seg) => {
+      const segmentTokens = tokenize(seg);
+      segmentTokens.forEach((token) => {
+        if (!isWhitespace(token)) {
+          if (token.length > 2) {
+            const wordKey = `global-${wordCount}-${token}`;
+            tokens.push({
+              token,
+              index: wordCount,
+              isCloze: _enableCloze && clozeWordIndices.has(wordKey)
+            });
+            wordCount++;
+          } else {
+            tokens.push({ token, index: -1, isCloze: false });
+          }
+        } else {
+          tokens.push({ token, index: -1, isCloze: false });
+        }
+      });
+    });
+    
+    return tokens;
+  }, [segments, clozeWordIndices, _enableCloze, isMounted]);
+
   const handleRevealWord = (wordKey: string) => {
     setRevealedWords(prev => new Set([...prev, wordKey]));
   };
@@ -295,43 +343,32 @@ export default function FrictionText({
 
   return (
     <div style={{ whiteSpace: "pre-wrap" }}>
-      {segments.map((seg, i) => {
-        // Use stable styling that won't change on re-renders
-        const styling = stableStyling?.[i];
-        if (!styling) return null;
-
-        // Check if this segment contains cloze words
-        const segmentTokens = tokenize(seg);
-        const content: ReactNode = (
-          <>
-            {segmentTokens.map((token, tokenIndex) => {
-              if (isWhitespace(token)) {
-                return token;
-              }
-              
-              // Check if this word should be hidden using pre-calculated indices
-              const globalIndex = tokens.indexOf(seg) + tokenIndex;
-              const wordKey = `global-${globalIndex}-${token}`;
-              const shouldHide = _enableCloze && clozeWordIndices.has(wordKey);
-              
-              if (shouldHide) {
-                return (
-                  <ClozeWord
-                    key={wordKey}
-                    word={token}
-                    onReveal={() => {
-                      setRevealedWords(prev => new Set([...prev, wordKey]));
-                    }}
-                    isRevealed={revealedWords.has(wordKey)}
-                  />
-                );
-              }
-              
-              return token;
-            })}
-          </>
-        );
-
+      {allTextTokens.map((tokenInfo, i) => {
+        if (tokenInfo.index === -1) {
+          // This is whitespace or short token, render as-is
+          return tokenInfo.token;
+        }
+        
+        if (tokenInfo.isCloze) {
+          // This is a cloze word
+          const wordKey = `global-${tokenInfo.index}-${tokenInfo.token}`;
+          return (
+            <ClozeWord
+              key={wordKey}
+              word={tokenInfo.token}
+              onReveal={() => {
+                setRevealedWords(prev => new Set([...prev, wordKey]));
+              }}
+              isRevealed={revealedWords.has(wordKey)}
+            />
+          );
+        }
+        
+        // Regular word - apply styling based on its position
+        const segmentIndex = Math.floor(i / 10); // Rough segment mapping
+        const styling = stableStyling?.[segmentIndex] || stableStyling?.[0];
+        if (!styling) return tokenInfo.token;
+        
         return (
           <span
             key={i}
@@ -345,7 +382,7 @@ export default function FrictionText({
             }}
             suppressHydrationWarning
           >
-            {content}
+            {tokenInfo.token}
           </span>
         );
       })}
