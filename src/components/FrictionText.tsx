@@ -274,10 +274,10 @@ export default function FrictionText({
                 return token;
               }
               
-              // Check if this word should be hidden - use deterministic selection
+              // Check if this word should be hidden - use deterministic selection (reduced by 60%)
               const wordKey = `${i}-${tokenIndex}-${token}`;
               const shouldHide = _enableCloze && 
-                (wordKey.charCodeAt(0) + wordKey.charCodeAt(1) + wordKey.charCodeAt(2)) % 4 === 0 && 
+                (wordKey.charCodeAt(0) + wordKey.charCodeAt(1) + wordKey.charCodeAt(2)) % 10 === 0 && 
                 token.length > 2;
               
               if (shouldHide) {
