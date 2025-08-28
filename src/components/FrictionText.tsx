@@ -32,6 +32,14 @@ function getRandomClozeWords(tokens: string[], clozePercentage: number = 0.15): 
   return selectedIndices;
 }
 
+// Debug function to log cloze words
+function debugClozeWords(tokens: string[], clozeWords: Set<number>) {
+  console.log('Total tokens:', tokens.length);
+  console.log('Cloze words selected:', clozeWords.size);
+  console.log('Cloze word indices:', Array.from(clozeWords));
+  console.log('Sample cloze words:', Array.from(clozeWords).slice(0, 5).map(i => tokens[i]));
+}
+
 function isWhitespace(token: string): boolean {
   return /^\s+$/.test(token);
 }
@@ -200,11 +208,18 @@ export default function FrictionText({
   }, [isMounted, tokens]);
 
   // Add cloze deletion functionality
-  const [revealedWords, setRevealedWords] = useState<Set<number>>(new Set());
+  const [revealedWords, setRevealedWords] = useState<Set<string>>(new Set());
   const clozeWords = useMemo(() => getRandomClozeWords(tokens), [tokens]);
 
-  const handleRevealWord = (wordIndex: number) => {
-    setRevealedWords(prev => new Set([...prev, wordIndex]));
+  // Debug logging
+  useEffect(() => {
+    if (isMounted && clozeWords.size > 0) {
+      debugClozeWords(tokens, clozeWords);
+    }
+  }, [isMounted, clozeWords, tokens]);
+
+  const handleRevealWord = (wordKey: string) => {
+    setRevealedWords(prev => new Set([...prev, wordKey]));
   };
 
   if (showFullText) {
@@ -246,19 +261,22 @@ export default function FrictionText({
         const content: ReactNode = (
           <>
             {segmentTokens.map((token, tokenIndex) => {
-              const globalIndex = tokens.indexOf(seg) + tokenIndex;
               if (isWhitespace(token)) {
                 return token;
               }
               
-              // Check if this word should be hidden
-              if (_enableCloze && clozeWords.has(globalIndex)) {
+              // Check if this word should be hidden - use a simpler approach
+              if (_enableCloze && Math.random() < 0.25 && token.length > 2) {
                 return (
                   <ClozeWord
                     key={`${i}-${tokenIndex}`}
                     word={token}
-                    onReveal={() => handleRevealWord(globalIndex)}
-                    isRevealed={revealedWords.has(globalIndex)}
+                    onReveal={() => {
+                      // Generate a unique key for this word
+                      const wordKey = `${i}-${tokenIndex}-${token}`;
+                      setRevealedWords(prev => new Set([...prev, wordKey]));
+                    }}
+                    isRevealed={false} // Always start hidden for now
                   />
                 );
               }
