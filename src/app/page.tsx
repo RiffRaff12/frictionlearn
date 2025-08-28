@@ -40,8 +40,8 @@ export default function Home() {
         </p>
       </header>
 
-      <div className="grid gap-6 overflow-x-auto" style={{ gridTemplateColumns: "360px 1400px", width: "max-content" }}>
-        <div className="min-w-[1400px] max-w-[1400px]">
+      <div className="flex gap-6 overflow-x-auto">
+        <div className="flex-shrink-0 w-[1400px]">
           <form onSubmit={handleGenerate} className="mb-4">
             <div className="mb-2">
               <button type="submit" className="block w-fit px-4 py-2 rounded-md border text-sm">
@@ -69,11 +69,11 @@ export default function Home() {
           </form>
         </div>
 
-        <div className="min-w-[360px] max-w-[360px]">
+        <div className="flex-shrink-0 w-[360px]">
           {text ? (
             <Reader key={regenKey} text={text} regenKey={regenKey} />
           ) : (
-            <div className="text-sm text-gray-600 dark:text-gray-300">Output will appear here after you click Start.</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">Output will appear here after you click Generate.</div>
           )}
         </div>
       </div>
