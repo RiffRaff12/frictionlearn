@@ -235,6 +235,41 @@ export default function FrictionText({
     });
   }, [isMounted, segments, isDark, randomFontColor, colorIntensity]);
 
+  // Pre-calculate which words should be hidden with spacing requirements
+  const clozeWordIndices = useMemo(() => {
+    if (!_enableCloze || !isMounted) return new Set<string>();
+    
+    const allTokens = tokenize(text);
+    const wordIndices: number[] = [];
+    const selectedIndices = new Set<string>();
+    
+    // Find all eligible word indices (words longer than 2 chars)
+    allTokens.forEach((token, index) => {
+      if (!isWhitespace(token) && token.length > 2) {
+        wordIndices.push(index);
+      }
+    });
+    
+    // Select cloze words with minimum 5-word spacing
+    let lastSelectedIndex = -10; // Start with negative to allow first selection
+    
+    for (let i = 0; i < wordIndices.length; i++) {
+      const currentIndex = wordIndices[i];
+      
+      // Check if this word is far enough from the last selected word
+      if (currentIndex - lastSelectedIndex >= 5) {
+        // Use deterministic selection (10% chance)
+        const wordKey = `global-${currentIndex}-${allTokens[currentIndex]}`;
+        if ((wordKey.charCodeAt(0) + wordKey.charCodeAt(1) + wordKey.charCodeAt(2)) % 10 === 0) {
+          selectedIndices.add(wordKey);
+          lastSelectedIndex = currentIndex;
+        }
+      }
+    }
+    
+    return selectedIndices;
+  }, [_enableCloze, isMounted, text]);
+
   const handleRevealWord = (wordKey: string) => {
     setRevealedWords(prev => new Set([...prev, wordKey]));
   };
@@ -274,11 +309,10 @@ export default function FrictionText({
                 return token;
               }
               
-              // Check if this word should be hidden - use deterministic selection (reduced by 60%)
-              const wordKey = `${i}-${tokenIndex}-${token}`;
-              const shouldHide = _enableCloze && 
-                (wordKey.charCodeAt(0) + wordKey.charCodeAt(1) + wordKey.charCodeAt(2)) % 10 === 0 && 
-                token.length > 2;
+              // Check if this word should be hidden using pre-calculated indices
+              const globalIndex = tokens.indexOf(seg) + tokenIndex;
+              const wordKey = `global-${globalIndex}-${token}`;
+              const shouldHide = _enableCloze && clozeWordIndices.has(wordKey);
               
               if (shouldHide) {
                 return (
